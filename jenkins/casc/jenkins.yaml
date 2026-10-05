@@ -1,0 +1,20 @@
+# jenkins/casc/jenkins.yaml — Jenkins Configuration as Code（基线版）
+# why：Jenkins 全部配置进 git，服务器重建=拷文件即复原（homepage 三 yaml 同款哲学）
+jenkins:
+  systemMessage: "ops-platform 构建版本管理（三层版本管理的「构建」层）"
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false   # why：禁自助注册，账号由 init.groovy.d 建（admin 线）
+  authorizationStrategy:
+    globalMatrix:   # why 非 loggedIn：CASC 无该简写（UnknownAttributesException 实证），globalMatrix 才是合法 JCasC 写法
+      grantedPermissions:
+        - "Overall/Administer:admin"
+        - "Overall/Read:authenticated"
+  clouds: []   # 本地单机，无云节点
+unclassified:
+  # 构建轮转=job 级 logRotator 承担（jobs.yaml pipelineJob 内已写 numToKeep 30/artifactNumToKeep 5）
+  # why 全局块撤掉：CASC 可用属性列表里无 buildDiscarder/buildDiscarders（两次 Invalid configuration elements 实证）；
+  # 语义不丢——restic keep_daily 同思想落在每个 job 定义里，与「策略轮转」思想一致
+  location:
+    url: http://127.0.0.1:4104/

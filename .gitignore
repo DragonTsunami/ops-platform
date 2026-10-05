@@ -1,0 +1,10 @@
+# 真实密钥环境文件——绝不进库（clinic-ops 同款纪律）
+.env
+# ansible/ 是嵌套 git 仓库（Semaphore Repository 要求真 git 仓库；junior/ 同款模式，纯本地不推送）
+ansible/
+# Restic 备份落点（D3：仓库快照实际落 ops-platform_backups-data 命名卷，本目录留作宿主侧导出暂存）
+backups/
+# Homepage 运行日志（容器写宿主 bind 目录，非配置）
+homepage/logs/
+*.log
+__pycache__/

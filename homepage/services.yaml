@@ -1,0 +1,37 @@
+# Homepage 服务目录：运维平台自己的导航页（谁从这里看到所有面板入口）
+- 平台面板:
+    - Semaphore:
+        icon: semaphore.png
+        href: http://127.0.0.1:4000
+        description: Ansible playbook 网页执行入口
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: http://127.0.0.1:4101
+        description: 拨测监控 + 状态页
+    - Adminer:
+        icon: adminer.png
+        href: http://127.0.0.1:4103
+        description: 数据库只读查看（admin 只读账号，仅 SELECT；改库走 DBeaver root）
+- 业务监控:
+    - 全局状态页:
+        icon: uptime-kuma.png
+        href: http://127.0.0.1:4101/status/ops
+        description: 六件套+clinic 栈心跳一览（Kuma 拨测矩阵 11 监控公开面）
+    - clinic Grafana:
+        icon: grafana.png
+        href: http://127.0.0.1:3000
+        description: clinic-ops 监控看板（本地）
+    - clinic 前端:
+        icon: nginx.png
+        href: http://127.0.0.1:8080
+        description: 医疗预约平台（本地）
+- 版本管理（内容·构建·数据）:
+    - 本地 Git (Gitea):
+        icon: gitea.png
+        href: http://127.0.0.1:4105/admin/ops-ansible
+        description: 内容版本层——playbook 源仓（commit=版本，永远全留）
+    - Jenkins:
+        icon: jenkins.png
+        href: http://127.0.0.1:4104
+        description: 构建版本层——构建历史=版本资产（logRotator 留 30 次，产物留 5 份）
+

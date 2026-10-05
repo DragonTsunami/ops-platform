@@ -1,0 +1,22 @@
+# jenkins/plugins.txt — 插件清单（install-plugins.sh 自动拉齐；钉版纪律：升级走 git 提交，不手点）
+# why 最小集：pipeline+git 就够首个 job 跑通；JCasC 由核心自带
+# 格式：artifact:version  （version=latest 表示当前最新；升版=改这里+重启，插件版本变更进 git 可审计）
+ant:latest
+antisamy-markup-formatter:latest
+build-timeout:latest
+cloudbees-folder:latest
+configuration-as-code:latest
+credentials-binding:latest
+email-ext:latest
+git:latest
+github-branch-source:latest
+gradle:latest
+ldap:latest
+mailer:latest
+matrix-auth:latest
+pam-auth:latest
+pipeline-stage-view:latest
+ssh-slaves:latest
+timestamper:latest
+workflow-aggregator:latest
+ws-cleanup:latest

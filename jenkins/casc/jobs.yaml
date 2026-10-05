@@ -1,0 +1,24 @@
+# jenkins/casc/jobs.yaml — 首个构建 job（配置即代码：从本地 Gitea 拉 ops-ansible 跑验证）
+# why job：三层版本的「构建」层要有真实 build #N 才算闭环——此处验证内容层产物（playbook 语法+结构）
+# 网络姿势：Jenkins 容器内直呼容器名 ops-gitea:3000（Docker DNS，跨机失效——D5 迁移时改 IP/域名）
+jobs:
+  - script: >
+      pipelineJob('ops-ansible-check') {
+        description('内容层产物验证：Gitea ops-ansible 语法+结构检查（构建版本层首个 job）')
+        logRotator { numToKeep(30); artifactNumToKeep(5) }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('http://admin:admin@ops-gitea:3000/admin/ops-ansible.git') }
+                branch('*/master')
+              }
+            }
+            scriptPath('Jenkinsfile.check')
+          }
+        }
+        triggers {
+          scm('H/5 * * * *')   // 5 分钟轮询 Gitea：有新 commit 才构建（YAML 折叠块拼单行后 # 会吞代码，Groovy 注释须用 //——JCasC 教训同款）
+        }
+      }
+

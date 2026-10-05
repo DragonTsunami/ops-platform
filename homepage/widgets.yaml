@@ -1,0 +1,5 @@
+# Homepage 信息组件（配置即代码）
+# Kuma 状态绿卡：灰点→绿点，一眼看清 11 监控整体健康（数据源=本面板族 Kuma 4101）
+- uptimekuma:
+    url: http://ops-kuma:3001
+    slug: ops

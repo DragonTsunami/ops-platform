@@ -1,0 +1,12 @@
+# Homepage 全局设置：标题/主题/分组布局
+title: 青衫运维平台
+theme: dark
+color: slate
+headerStyle: clean
+layout:
+  平台面板:
+    style: row
+    columns: 2
+  业务监控:
+    style: row
+    columns: 2

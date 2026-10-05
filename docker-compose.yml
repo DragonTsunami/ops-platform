@@ -1,0 +1,133 @@
+# ops-platform D1：操作面板三件套（Semaphore + Uptime Kuma + Homepage）
+# 平台定位：网页里运维——Ansible 面板执行 playbook + 拨测状态页 + 导航仪表盘
+name: ops-platform   # why 显式项目名：容器/卷/网络前缀固定为 ops-platform，绝不与 clinic-ops、cobblemon 撞名
+
+networks:
+  ops-net:
+    driver: bridge   # why bridge：单机默认形态；跨机联调是 D5 服务器上的事
+  # 以下三条=别家项目的现成网络，只挂接不创建（external：不存在则报错，绝不静默建假网）
+  clinic-net:
+    external: true   # clinic-ops 全家（够到 clinic-mysql:3306）
+  junior_default:
+    external: true   # junior 学习栈（够到它的 mysql）
+  ansible-lab_lab:
+    external: true   # ansible 靶场（后续靶机库查看预留）
+
+volumes:
+  semaphore-data:    # why 命名卷：数据生命周期独立于容器，down 不丢数据（--volumes 才丢）
+  kuma-data:
+  backups-data:   # why 命名卷：restic 备份仓库落点（D3）——与被备份源（kuma-data 等）物理分离，单卷损坏不连坐
+  jenkins-data:   # why 命名卷：JENKINS_HOME（构建历史=版本资产，down 不丢；D3 备份矩阵的 [J] 项会捞它）
+  gitea-data:     # why 命名卷：Gitea 仓库数据（本地 Git 托管，三层版本管理的「内容」层落点）
+
+services:
+  # ── Semaphore：Ansible 网页面板（平台的大脑）─────────────────────────
+  semaphore:
+    image: docker.io/semaphoreui/semaphore:v2.19.12   # why 钉版本：latest 不可复现，重建后行为漂移=排障噩梦
+    container_name: ops-semaphore   # why 固定容器名：日志检索/下游脚本的契约（09-18 心智模型）
+    ports:
+      - "127.0.0.1:4000:3000"   # why 127.0.0.1 前缀：只对本机可见；公网暴露决策发生在 D5 服务器上
+    environment:
+      SEMAPHORE_ADMIN: ${SEMAPHORE_ADMIN:-admin}
+      SEMAPHORE_ADMIN_NAME: ${SEMAPHORE_ADMIN_NAME:-Admin}
+      SEMAPHORE_ADMIN_PASSWORD: ${SEMAPHORE_ADMIN_PASSWORD:?ops-platform/.env 缺 SEMAPHORE_ADMIN_PASSWORD}   # why :?：缺值直接拒启，绝不静默回落到互联网皆知的默认密码
+      SEMAPHORE_ADMIN_EMAIL: ${SEMAPHORE_ADMIN_EMAIL:-admin@ops.local}
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: ${SEMAPHORE_ACCESS_KEY_ENCRYPTION:?ops-platform/.env 缺 ACCESS_KEY_ENCRYPTION}   # why：它加密你存进面板的 SSH 私钥/密码；丢了=面板里所有凭据作废
+      SEMAPHORE_DB_DIALECT: sqlite   # why sqlite：单机面板零依赖；合法值=mysql/postgres/sqlite（官方 configuration.md），bolt 已在 v2.19 移除（日志 Unknown dialect 实证）；库文件 database.sqlite 默认落在下方命名卷
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?ops-platform/.env 缺 RESTIC_PASSWORD}   # why :?：仓库加密密钥丢失=快照永久解不开（restic 无找回机制），绝不静默回落默认值；走容器环境变量传给 playbook，不落命令行/日志
+      GIT_CONFIG_COUNT: "2"   # why：Windows 挂载所有权≠容器运行用户，git safe.directory 拒绝操作（dubious ownership 实证）；clone 时 /ansible 与 /ansible/.git 两个路径都会被检查，须都加白
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /ansible
+      GIT_CONFIG_KEY_1: safe.directory
+      GIT_CONFIG_VALUE_1: /ansible/.git
+    volumes:
+      - semaphore-data:/var/lib/semaphore   # why：官方约定路径，sqlite 数据库和配置都在这
+      - ./ansible:/ansible:ro   # why ro：playbook 源头=git 仓库，面板只读执行不改源头；推 GitHub 后此处换 Git 源
+      # ── D3 备份/还原矩阵挂载（平台自管：Semaphore 容器=执行引擎+备份操作者）──
+      - kuma-data:/backup-src/kuma-data:ro   # why ro：备份者只读，绝不写被备份方；kuma.db 真身在这（VACUUM INTO 快照用）
+      - backups-data:/var/backups/ops   # why 命名卷：仓库快照落点（与被备份源分离，删容器不丢）；还原演练写操作也在这
+      - /var/run/docker.sock:/var/run/docker.sock   # why：备份/还原要启停 clinic 容器+在容器内执行 mysqldump/快照（container run/exec 的控制面）；ro 挂 sock 不生效故必须 rw——安全边界=宿主 root 级，D5 迁服务器时复盘
+      - ./ansible/bin/restic:/usr/local/bin/restic:ro   # why bind 单文件：restic 二进制不进镜像（钉版 0.19.1 进 git 不进 Dockerfile），semaphore 镜像是官方件不可改
+      - ./ansible/bin/docker:/usr/local/bin/docker:ro   # why：playbook 要 docker exec/cp/run 控制别的容器（sock 已挂，还缺 CLI 工具）；面板 runner 环境不继承外部 PATH，CLI 与引擎 API 29.8.2↔29.5.2 兼容；钉版从 docker:29-cli 镜像提取，不进镜像
+    networks: [ops-net]
+    restart: unless-stopped
+
+  # ── Jenkins：构建版本管理（三层版本管理的「构建」层；构建历史=版本资产，备份给 restic）──
+  jenkins:
+    image: jenkins/jenkins:2.580.1-lts   # why 钉版：latest 不可复现（semaphore/kuma/adminer 同款纪律）；2.580.1=changelog-stable 实查 LTS
+    container_name: ops-jenkins
+    ports:
+      - "127.0.0.1:4104:8080"   # why 4104：40xx 纪律延续（4101 kuma /4103 adminer /4104 jenkins）；127 前缀最小暴露
+    environment:
+      JAVA_OPTS: -Djava.awt.headless=true
+      CASC_JENKINS_CONFIG: /var/jenkins_home/casc   # why：配置即代码，JCasC 免手工向导
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:?ops-platform/.env 缺 JENKINS_ADMIN_PASSWORD}   # why :?：同 admin 纪律，缺值拒启不静默回落
+    volumes:
+      - jenkins-data:/var/jenkins_home   # why 命名卷：构建历史+工作区+插件都算版本资产，删容器不丢
+      - ./jenkins/init.groovy.d:/var/jenkins_home/init.groovy.d:ro   # why bind：初始化脚本进 git（配置即代码），ro 不会被容器改写
+      - ./jenkins/casc:/var/jenkins_home/casc:ro   # why bind：JCasC 主配置进 git
+      - ./jenkins/plugins.txt:/usr/share/jenkins/ref/plugins.txt:ro   # why：插件清单进 git——官方 install-plugins.sh 启动时按清单拉齐（钉版可审计）
+    networks: [ops-net]
+    restart: unless-stopped
+
+  # ── Gitea：本地 Git 托管（三层版本管理的「内容」层；restic 备份矩阵的候选新增项）──
+  gitea:
+    image: gitea/gitea:28.0.0   # why 钉版：同上纪律；28.0.0=GitHub latest release 实查
+    container_name: ops-gitea
+    ports:
+      - "127.0.0.1:4105:3000"   # why 4105：40xx 纪律；容器内 3000=web 端口（Gitea 内置）
+    environment:
+      USER: git
+      GITEA__database__DB_TYPE: sqlite3   # why sqlite：单机面板栈零依赖（kuma 同款哲学），备份只需捞一个 .db 文件
+      GITEA__database__PATH: /data/gitea/gitea.db
+      GITEA__server__ROOT_URL: http://127.0.0.1:4105/   # why：默认 localhost:3000（容器内视角）→ 外部点击链接全 404；钉死宿主门牌
+      GITEA__server__HTTP_ADDR: 0.0.0.0
+      GITEA__server__DISABLE_SSH: "true"   # why：单机面板走 http，不需要内置 sshd（省一个 22 端口的噪音）
+      GITEA_ADMIN_PASSWORD: ${GITEA_ADMIN_PASSWORD:?ops-platform/.env 缺 GITEA_ADMIN_PASSWORD}   # why :?：同 :? 纪律；init 脚本用（无 groovy 向导）
+    volumes:
+      - gitea-data:/data   # why 命名卷：仓库裸目录+sqlite+附件全在 /data，备份矩阵捞它即可
+    networks: [ops-net]
+    restart: unless-stopped
+
+  # ── Uptime Kuma：拨测 + 公开状态页（平台的眼睛）──────────────────────
+  uptime-kuma:
+    image: louislam/uptime-kuma:2.5.5
+    container_name: ops-kuma
+    ports:
+      - "127.0.0.1:4101:3001"   # why 4101 非 4001：宿主机 4001 被 QQ.exe 占用（netstat PID 实证）；容器内 3001 是 Kuma 固定约定不改
+    volumes:
+      - kuma-data:/app/data   # why 命名卷非 bind：官方文档明确 SQLite 数据目录禁 NFS/网络挂载，命名卷最稳
+    networks: [ops-net, clinic-net, junior_default, ansible-lab_lab]   # why 四网：拨测矩阵要够到别家容器（容器名直呼），ops-net 保 Semaphore/自栈互通
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # why：Docker Desktop 下 Linux 容器默认没有该别名（实测 ENOTFOUND）；host-gateway=容器看宿主机的稳定门牌，监测宿主进程用
+    restart: unless-stopped
+
+  # ── Homepage：导航仪表盘（平台的脸面，治「运维成果网页上看不见」）────
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v2.4.0
+    container_name: ops-homepage
+    ports:
+      - "127.0.0.1:4002:3000"
+    volumes:
+      - ./homepage:/app/config   # why bind 非命名卷：配置即代码——三个 yaml 进 git，服务器重建=拷文件即复原
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: 127.0.0.1:4002,localhost:4002,ops-homepage:3000   # why：v2.4.0 起 Host 校验防 DNS rebinding；访问用的 host:port 必须在白名单（日志实证 400）；ops-homepage:3000=供 ops-kuma 拨测走容器名内网
+      HOMEPAGE_VAR_KUMA_USERNAME: ${HOMEPAGE_VAR_KUMA_USERNAME:?}   # Kuma widget 凭据走 env（不落 git，与统一账号线同源）
+      HOMEPAGE_VAR_KUMA_PASSWORD: ${HOMEPAGE_VAR_KUMA_PASSWORD:?}
+    networks: [ops-net]
+    restart: unless-stopped
+
+  # ── Adminer：网页数据库查看器（写/看分离的「看」半边）────────────────
+  adminer:
+    image: adminer:6.1.1   # why 钉版本：同 Semaphore 纪律，latest 不可复现；6.1.1=2026-09-25 官方 release
+    container_name: ops-adminer
+    ports:
+      - "127.0.0.1:4103:8080"   # why 4103：40xx 端口纪律 + 127.0.0.1 前缀最小暴露（Kuma 4101 的邻位）
+    environment:
+      ADMINER_DEFAULT_SERVER: clinic-mysql   # why：登录页服务器字段预填 clinic 库的容器名（DNS=容器名，同网络才解析得通）；junior 栈要看时手动改此字段为其容器名
+    networks:
+      - ops-net
+      - clinic-net    # why external：容器互访喊名只在同一网络有效（心智模型 09-19）；要够到 clinic-mysql 必须把它的网挂进来
+      - junior_default
+      - ansible-lab_lab
+    restart: unless-stopped
