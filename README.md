@@ -51,6 +51,14 @@ docker compose up -d
 - 重建姿势：容器起来后 `docker exec ops-kuma sqlite3 /app/data/kuma.db < kuma/monitors-seed.sql` → 回填密码 → `docker restart ops-kuma`
 - 坑位账：MySQL/Redis 走 `database_connection_string`（URL 串），填 hostname 字段反而不生效；Jenkins 拨根路径 403（登录墙），拨 `/login` 200
 
+## 首次上手（clone 之后会发生什么）
+
+- 六容器起来即可用：Homepage/Kuma/Adminer 空仓即工作；Jenkins 由 JCasC 自动建 admin 与 job 定义（job 在 Gitea 就绪前会保持等待）。
+- **Gitea 是空的**——需自建管理员并推一个 playbook 仓（如 ops-ansible），Jenkins job 才有东西可拉；见 `jenkins/casc/jobs.yaml` 里 job 指向的仓地址。
+- **Kuma 空仓**——按下方「拨测矩阵」用 seed SQL 重建 11 条监控（业务组 4 条指向 clinic-ops 栈，没跑 clinic 的环境这些条目会 DOWN，属预期，可删）。
+- Semaphore 里挂载的备份/还原 playbook 见 `ansible/`（restic 快照仓首跑自动初始化）。
+- 所有账号密码来自 `.env`（本地跑默认弱口令，**上服务器务必换强密码**）。
+
 ## AI 协作方式
 
 与 clinic-ops 相同纪律：AI 起草 → 人工读懂 → 网页执行留痕。
