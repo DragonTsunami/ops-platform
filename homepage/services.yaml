@@ -1,4 +1,6 @@
 # Homepage 服务目录：运维平台自己的导航页（谁从这里看到所有面板入口）
+# v2.4 机制（编译产物实证）：服务卡内联 widget 才能走 /api/services/proxy 拿数据，
+# 顶层 widgets.yaml 独立组件无法绑定服务卡（type 恒=service，代理 403）
 - 平台面板:
     - Semaphore:
         icon: semaphore.png
@@ -8,6 +10,12 @@
         icon: uptime-kuma.png
         href: http://127.0.0.1:4101
         description: 拨测监控 + 状态页
+        widget:
+            type: uptimekuma
+            url: http://ops-kuma:3001
+            slug: ops
+            username: '{{HOMEPAGE_VAR_KUMA_USERNAME}}'
+            password: '{{HOMEPAGE_VAR_KUMA_PASSWORD}}'
     - Adminer:
         icon: adminer.png
         href: http://127.0.0.1:4103
@@ -34,4 +42,3 @@
         icon: jenkins.png
         href: http://127.0.0.1:4104
         description: 构建版本层——构建历史=版本资产（logRotator 留 30 次，产物留 5 份）
-

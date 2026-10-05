@@ -1,8 +1,11 @@
 # Homepage 全局设置：标题/主题/分组布局
+# 2026-10-05 苹果简约风定版：light 主题 + cardBlur 毛玻璃 + 隐藏版本角标（视觉细节在 custom.css）
 title: 青衫运维平台
-theme: dark
+theme: light
 color: slate
 headerStyle: clean
+cardBlur: md
+hideVersion: true
 layout:
   平台面板:
     style: row
