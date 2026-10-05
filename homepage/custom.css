@@ -1,72 +1,94 @@
-/* Homepage 苹果简约风覆写（2026-10-05）
-   口径：#f5f5f7 苹果灰底 + 白卡毛玻璃 + 18px 大圆角 + 极淡层叠阴影 + SF/PingFang 字体栈
-   选择器策略：卡片容器类名是模板拼接，用属性子串锚（basis-1/shadow-theme）+ 稳定 id */
+/* Homepage Raycast 风覆写（2026-10-05）
+   设计令牌（popular-web-designs/raycast 定版）：
+   底 #07080a 近黑蓝 · 卡 #101111 · 发丝描边 rgba(255,255,255,.06) · 双环阴影（外环 #1b1c1e+内嵌 #07080a）
+   文本 #f9f9f9 主 / #9c9c9d 次 / #6a6b6c 弱 · 红 #FF6363 只做点缀 · Inter 500 基线 +0.2px 正字距
+   选择器策略：卡片容器类名是 utility 拼接，用属性子串锚（basis-1/shadow-theme）+ 稳定 id */
 
-/* ── 基底：苹果灰 + 系统字体栈 ── */
+/* ── 基底：Raycast 深空 + Inter 字体栈（OpenType 全开）── */
 html {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-               "PingFang SC", "Hiragino Sans GB", "Segoe UI", Roboto, sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
+  font-feature-settings: "calt", "kern", "liga", "ss03";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 body {
-  background: #f5f5f7 !important;
-  letter-spacing: 0.01em;
-  color: #1d1d1f;
+  background: #07080a !important;
+  letter-spacing: 0.2px;
+  color: #f9f9f9;
 }
 
-/* ── 卡片（服务卡/bookmark/顶部信息卡）：白玻璃 + 大圆角 + 淡阴影 ── */
+/* ── 卡片：#101111 实心深面 + 发丝描边 + macOS 双环阴影 ── */
 [class*="basis-1"],
 [class*="shadow-theme"],
 #information-widgets > div > div {
-  background: rgba(255, 255, 255, 0.78) !important;
-  backdrop-filter: blur(20px) saturate(1.7);
-  -webkit-backdrop-filter: blur(20px) saturate(1.7);
-  border-radius: 18px !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 10px 30px rgba(0, 0, 0, 0.05) !important;
-  transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.25s ease;
+  background: #101111 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    rgb(27, 28, 30) 0px 0px 0px 1px,
+    rgb(7, 8, 10) 0px 0px 0px 1px inset,
+    rgba(0, 0, 0, 0.28) 0px 1.189px 2.377px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
+/* 悬停：Raycast 签名——描边提亮 + 外环辉光，不做位移不做背景色切换 */
 [class*="basis-1"]:hover,
 [class*="shadow-theme"]:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow:
+    rgb(27, 28, 30) 0px 0px 0px 1px,
+    rgba(85, 179, 255, 0.08) 0px 0px 20px 2px,
+    rgba(0, 0, 0, 0.28) 0px 1.189px 2.377px !important;
 }
 
-/* ── 卡内文字：苹果双色系（主 #1d1d1f / 辅 #6e6e73）── */
+/* ── 卡内文字层级：主 #f9f9f9(600) / 次 #9c9c9d / 弱 #6a6b6c ── */
 [class*="basis-1"] [class*="text-theme-700"],
 [class*="basis-1"] [class*="text-theme-600"],
 #information-widgets [class*="text-theme-700"] {
-  color: #1d1d1f !important;
+  color: #f9f9f9 !important;
   font-weight: 600;
 }
 [class*="basis-1"] [class*="text-theme-500"],
 [class*="basis-1"] [class*="text-theme-400"],
 #information-widgets [class*="text-theme-500"],
 [class*="description"] {
-  color: #6e6e73 !important;
-  font-weight: 400;
+  color: #9c9c9d !important;
+  font-weight: 500;
 }
 
-/* ── 分组标题：去重线，改发丝线 + 小字距 ── */
+/* ── 分组标题：去粗重分隔线 → 发丝线 + 近白 500 ── */
 h2[class*="border-b-2"] {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-  color: #1d1d1f;
-  letter-spacing: 0.02em;
-  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f9f9f9;
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 
-/* ── 顶部 Kuma 状态卡：状态胶囊保留语义色，容器融入白卡 ── */
+/* ── 顶部 Kuma 状态卡：胶囊化融入深面（语义色保留，透明度压暗到 Raycast 层级）── */
 #information-widgets [class*="bg-theme-500/10"],
 #information-widgets [class*="dark\:bg-theme-900"] {
-  border-radius: 999px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* ── 顶栏/搜索：融入灰底，去掉块状边框 ── */
+/* ── 顶栏搜索框：Raycast 输入框（#07080a 底 + .08 描边 + 蓝焦点环）── */
 input[class*="bg-theme-60"] {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border-radius: 14px !important;
+  background: #07080a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  color: #f9f9f9 !important;
+}
+input[class*="bg-theme-60"]::placeholder { color: #6a6b6c !important; }
+input[class*="bg-theme-60"]:focus {
+  border-color: rgba(85, 179, 255, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(85, 179, 255, 0.15) !important;
+  outline: none;
+}
+
+/* ── 书签胶囊（GH/RE/YT 徽标）：Raycast neutral badge ── */
+[class*="basis-1"] [class*="rounded"] {
+  border-radius: 6px;
 }
 
 /* 页脚轻量化 */
-#footer { opacity: 0.45; }
+#footer { opacity: 0.4; }
