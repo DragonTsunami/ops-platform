@@ -1,18 +1,2 @@
----
-# For configuration options and examples, please see:
-# https://gethomepage.dev/configs/bookmarks
-
-- Developer:
-    - Github:
-        - abbr: GH
-          href: https://github.com/
-
-- Social:
-    - Reddit:
-        - abbr: RE
-          href: https://reddit.com/
-
-- Entertainment:
-    - YouTube:
-        - abbr: YT
-          href: https://youtube.com/
+# Homepage 书签：已迁入 services.yaml「快捷导航」组（用户令：排版与服务卡统一，卡内不带标题），
+# 此文件清空后底部书签区不再渲染。

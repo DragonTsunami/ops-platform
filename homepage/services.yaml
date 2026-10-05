@@ -42,3 +42,13 @@
         icon: jenkins.png
         href: http://127.0.0.1:4104
         description: 构建版本层——构建历史=版本资产（logRotator 留 30 次，产物留 5 份）
+- 快捷导航:
+    - Github:
+        icon: github.png
+        href: https://github.com
+    - Reddit:
+        icon: reddit.png
+        href: https://www.reddit.com
+    - YouTube:
+        icon: youtube.png
+        href: https://www.youtube.com
